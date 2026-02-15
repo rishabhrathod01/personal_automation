@@ -1,0 +1,32 @@
+# Meal plan WhatsApp: send lunch/dinner instructions to 565A Cook group
+# Schedule: 7:30 AM IST and 5:30 PM IST, Monday–Saturday
+# Uses Whapi Sandbox channel (BLKWID-UTZ9U). Set token in GitHub Secrets as WHAPI_API_TOKEN.
+name: Meal plan WhatsApp
+
+on:
+  schedule:
+    # 7:30 AM IST = 02:00 UTC; 5:30 PM IST = 12:00 UTC; Mon–Sat (1–6)
+    - cron: '0 2 * * 1-6'
+    - cron: '0 12 * * 1-6'
+  workflow_dispatch: # allow manual run
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install and build
+        run: npm ci && npm run build
+
+      - name: Send meal plan message
+        env:
+          WHAPI_API_TOKEN: ${{ secrets.WHAPI_API_TOKEN }}
+        run: node dist/scripts/meal-plan/send-meal-plan-message.js

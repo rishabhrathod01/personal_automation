@@ -1,0 +1,14 @@
+{
+  "name": "personal-automation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "meal-plan:send": "node dist/scripts/meal-plan/send-meal-plan-message.js",
+    "meal-plan:get-groups": "node dist/scripts/meal-plan/get-whapi-groups.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  }
+}
