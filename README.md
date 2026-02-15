@@ -17,6 +17,10 @@ Sends daily meal instructions (lunch and dinner) to a WhatsApp group (**565A Coo
 | **Delivery** | [Whapi.Cloud](https://whapi.cloud/) API → WhatsApp group (group ID and cook phone in secrets) |
 | **Message format** | “@manisha_cook di, Aaj &lt;lunch/dinner&gt; mai niche di gayi chezze bana dijiye” + bullet list (sabji, chapati, rice/dal) |
 
+**How the group ID is obtained:** The workflow uses Whapi's **Groups API** (`GET /groups`). From the repo, run `WHAPI_API_TOKEN=your_token npm run meal-plan:get-groups` (after `npm run build`). The script lists all groups the channel can see and prints each group's `id` (e.g. `123456789012345@g.us`). Copy that `id` and set it as the `WHAPI_GROUP_ID` secret (or in local `.env`). The invite link for a WhatsApp group is not the same as this API group ID.
+
+**Whapi plan:** This automation runs on Whapi's **free Sandbox** plan ([pricing](https://whapi.cloud/price), [help](https://support.whapi.cloud/help-desk/getting-started/pricing)). The sandbox is free and unlimited in time; it has usage limits (e.g. 150 messages/day, 5 active conversations/month). For higher volume or production use, Whapi offers paid plans (e.g. Developer Premium) with unlimited messaging.
+
 **Workflow:** [`.github/workflows/meal-plan-whatsapp.yml`](.github/workflows/meal-plan-whatsapp.yml)
 
 **Scripts (TypeScript):**
