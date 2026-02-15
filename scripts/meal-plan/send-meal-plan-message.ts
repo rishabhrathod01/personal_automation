@@ -123,13 +123,16 @@ async function sendWhapiMessage(body: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const testMode = process.env.MEAL_PLAN_TEST_MODE === 'true';
   const mealType = getMealTypeFromUTCHour();
   const weekday = getISTWeekday(); // 0=Sun .. 6=Sat
-  if (weekday === 0) {
+
+  if (!testMode && weekday === 0) {
     console.log('Sunday — no message sent.');
     process.exit(0);
   }
-  const dayIndex = weekday; // 1=Mon .. 6=Sat maps to Day 1..6
+
+  const dayIndex = testMode ? 1 : weekday; // test = Day 1; else 1=Mon .. 6=Sat
 
   const docText = await fetchDoc();
   const days = parseDocText(docText);
@@ -139,9 +142,12 @@ async function main(): Promise<void> {
   }
 
   const sabji = mealType === 'lunch' ? getShortSabji(plan.lunch) : getShortSabji(plan.dinner);
-  const isRiceDay = RICE_DAYS.includes(weekday);
+  const isRiceDay = RICE_DAYS.includes(testMode ? 1 : weekday);
   const chapatiCount = isRiceDay ? CHAPATI_WITH_RICE : CHAPATI_WITHOUT_RICE;
 
+  if (testMode) {
+    console.log(`Test mode: sending Day 1 ${mealType} meal plan.`);
+  }
   const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay);
   console.log('Sending message:\n', message);
   await sendWhapiMessage(message);

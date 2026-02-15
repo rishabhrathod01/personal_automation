@@ -77,7 +77,10 @@ Do these once in order:
 ### 4.5 Verify
 
 - In GitHub: **Actions** → **Meal plan WhatsApp** → **Run workflow**.
-- Run once and confirm it fetches the doc, builds the message, and sends via Whapi without errors.
+- **Manual run:** Click **Run workflow**, choose the branch, then either:
+  - Leave **Send Day 1 lunch/dinner meal plan (by current time) as test** unchecked → sends today’s meal plan (by weekday and time).
+  - Check **Send Day 1 lunch/dinner meal plan (by current time) as test** → sends **Day 1**’s lunch or dinner from the doc (lunch/dinner chosen by current UTC time, same as real run). Use this to verify the flow without using today’s actual day.
+- Run once and confirm the message appears in WhatsApp.
 
 ---
 
