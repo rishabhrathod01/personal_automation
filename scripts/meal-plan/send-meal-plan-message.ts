@@ -125,6 +125,9 @@ async function sendWhapiMessage(body: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  if (!MEAL_PLAN_DOC_EXPORT_URL) {
+    throw new Error('MEAL_PLAN_DOC_ID env var is not set (required to fetch the meal plan doc).');
+  }
   const testMode = process.env.MEAL_PLAN_TEST_MODE === 'true';
   const mealType = getMealTypeFromUTCHour();
   const weekday = getISTWeekday(); // 0=Sun .. 6=Sat

@@ -35,5 +35,8 @@ jobs:
       - name: Send meal plan message
         env:
           WHAPI_API_TOKEN: ${{ secrets.WHAPI_API_TOKEN }}
+          WHAPI_GROUP_ID: ${{ secrets.WHAPI_GROUP_ID }}
+          MEAL_PLAN_COOK_PHONE: ${{ secrets.MEAL_PLAN_COOK_PHONE }}
+          MEAL_PLAN_DOC_ID: ${{ secrets.MEAL_PLAN_DOC_ID }}
           MEAL_PLAN_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && (inputs.test_mode == true || inputs.test_mode == 'true') && 'true' || '' }}
         run: node dist/scripts/meal-plan/send-meal-plan-message.js
