@@ -79,7 +79,9 @@ function buildMessage(
   mealType: MealType,
   sabji: string,
   chapatiCount: number,
-  isRiceDay: boolean
+  isRiceDay: boolean,
+  /** Phone number for @mention (e.g. 91XXXXXXXXXX). Body must contain @<number> for Whapi to render a real mention. */
+  mentionPhone: string
 ): string {
   const mealLabel = mealType === 'lunch' ? 'lunch' : 'dinner';
   const riceLine =
@@ -88,7 +90,7 @@ function buildMessage(
       : 'Rice aur dal (subah wala use karein)';
 
   const lines = [
-    '@manisha_cook di,',
+    `@${mentionPhone} di,`,
     `Aaj ${mealLabel} mai niche di gayi chezze bana dijiye`,
     `- Sabji: ${sabji}`,
     `- Chapati: ${chapatiCount}${isRiceDay ? ' (rice day)' : ''}`,
@@ -148,7 +150,7 @@ async function main(): Promise<void> {
   if (testMode) {
     console.log(`Test mode: sending Day 1 ${mealType} meal plan.`);
   }
-  const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay);
+  const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay, COOK_PHONE);
   console.log('Sending message:\n', message);
   await sendWhapiMessage(message);
   console.log('Sent successfully.');
