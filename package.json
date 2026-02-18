@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "meal-plan:send": "node dist/scripts/meal-plan/send-meal-plan-message.js",
-    "meal-plan:get-groups": "node dist/scripts/meal-plan/get-whapi-groups.js"
+    "meal-plan:get-groups": "node dist/scripts/meal-plan/get-whapi-groups.js",
+    "meal-plan:poll": "node dist/scripts/meal-plan/send-meal-plan-poll.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",

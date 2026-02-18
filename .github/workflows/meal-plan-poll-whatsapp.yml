@@ -1,0 +1,43 @@
+# Meal plan poll: ask the group who wants lunch/dinner (Yes/No poll)
+# Dinner poll: 11:30 AM IST same day (06:00 UTC)
+# Lunch poll: 9:00 PM IST day before (15:30 UTC)
+# Uses same Whapi token and group as meal-plan-whatsapp. Set MEAL_PLAN_POLL_TYPE in env.
+name: Meal plan poll (lunch/dinner)
+
+on:
+  schedule:
+    - cron: '0 6 * * 1-6'   # 11:30 AM IST, Mon–Sat — dinner poll (same day)
+    - cron: '30 15 * * 0-5' # 9:00 PM IST, Sun–Fri — lunch poll (prev day)
+  workflow_dispatch:
+    inputs:
+      poll_type:
+        description: 'Poll type'
+        required: true
+        default: dinner
+        type: choice
+        options:
+          - dinner
+          - lunch
+
+jobs:
+  send_poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install and build
+        run: npm ci && npm run build
+
+      - name: Send lunch/dinner poll
+        env:
+          WHAPI_API_TOKEN: ${{ secrets.WHAPI_API_TOKEN }}
+          WHAPI_GROUP_ID: ${{ secrets.WHAPI_GROUP_ID }}
+          MEAL_PLAN_POLL_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.poll_type || '' }}
+        run: node dist/scripts/meal-plan/send-meal-plan-poll.js
