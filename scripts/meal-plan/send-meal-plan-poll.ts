@@ -35,8 +35,7 @@ async function sendWhapiPoll(chatId: string, question: string, options: string[]
   const url = `${WHAPI_BASE_URL}/messages/poll`;
   const form = new FormData();
   form.append('to', chatId);
-  form.append('question', question);
-  // Whapi poll API: options as JSON array string or multiple fields; try JSON first
+  form.append('title', question); // Whapi expects "title" for the poll question
   form.append('options', JSON.stringify(options));
 
   const res = await fetch(url, {
