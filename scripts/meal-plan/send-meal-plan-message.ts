@@ -195,6 +195,8 @@ async function main(): Promise<void> {
     throw new Error('MEAL_PLAN_DOC_ID env var is not set (required to fetch the meal plan doc).');
   }
   const testMode = process.env.MEAL_PLAN_TEST_MODE === 'true';
+  const testDayRaw = process.env.MEAL_PLAN_TEST_DAY ?? '';
+  const testDay = testDayRaw ? Math.max(1, Math.min(12, parseInt(testDayRaw, 10) || 1)) : 1;
   const mealType = getMealTypeFromUTCHour();
   const weekday = getISTWeekday(); // 0=Sun .. 6=Sat
 
@@ -203,7 +205,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const dayIndex = testMode ? 1 : weekday; // test = Day 1; else 1=Mon .. 6=Sat
+  const dayIndex = testMode ? testDay : weekday; // test = selected day (1–12); else 1=Mon .. 6=Sat
 
   const docText = await fetchDoc();
   const days = parseDocText(docText);
@@ -215,11 +217,12 @@ async function main(): Promise<void> {
   const sabji = mealType === 'lunch' ? getShortSabji(plan.lunch) : getShortSabji(plan.dinner);
   const recipeLink =
     mealType === 'lunch' ? plan.lunchRecipeLink : plan.dinnerRecipeLink;
-  const isRiceDay = RICE_DAYS.includes(testMode ? 1 : weekday);
+  const weekdayForRice = testMode ? ((dayIndex - 1) % 6) + 1 : weekday; // Day 7→1, 8→2, … 12→6
+  const isRiceDay = RICE_DAYS.includes(weekdayForRice);
   const chapatiCount = isRiceDay ? CHAPATI_WITH_RICE : CHAPATI_WITHOUT_RICE;
 
   if (testMode) {
-    console.log(`Test mode: sending Day 1 ${mealType} meal plan.`);
+    console.log(`Test mode: sending Day ${dayIndex} ${mealType} meal plan.`);
   }
   const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay, COOK_PHONE, recipeLink);
   console.log('Sending message:\n', message);

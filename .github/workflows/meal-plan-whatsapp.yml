@@ -11,10 +11,28 @@ on:
   workflow_dispatch:
     inputs:
       test_mode:
-        description: 'Send Day 1 lunch/dinner meal plan (by current time) as test'
+        description: 'Test run (use selected day instead of today)'
         required: false
         default: false
         type: boolean
+      test_day:
+        description: 'Day to send (1–12). Only used when Test run is checked.'
+        required: false
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          - '6'
+          - '7'
+          - '8'
+          - '9'
+          - '10'
+          - '11'
+          - '12'
 
 jobs:
   send:
@@ -39,4 +57,5 @@ jobs:
           MEAL_PLAN_COOK_PHONE: ${{ secrets.MEAL_PLAN_COOK_PHONE }}
           MEAL_PLAN_DOC_ID: ${{ secrets.MEAL_PLAN_DOC_ID }}
           MEAL_PLAN_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && (inputs.test_mode == true || inputs.test_mode == 'true') && 'true' || '' }}
+          MEAL_PLAN_TEST_DAY: ${{ github.event_name == 'workflow_dispatch' && inputs.test_day || '' }}
         run: node dist/scripts/meal-plan/send-meal-plan-message.js
