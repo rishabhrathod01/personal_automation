@@ -22,6 +22,8 @@ interface DayPlan {
   dayNum: number;
   lunch: string;
   dinner: string;
+  lunchRecipeLink: string;
+  dinnerRecipeLink: string;
 }
 
 function getMealTypeFromUTCHour(): MealType {
@@ -38,28 +40,91 @@ function getISTWeekday(): number {
   return ist.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 }
 
+/** True if the line looks like a URL (recipe link from the doc table). */
+function isRecipeLinkLine(line: string): boolean {
+  return /^https?:\/\//i.test(line.trim());
+}
+
+/** Extract URL from "Recipe: ..." or "Recipe Link: ..." line; otherwise return line if it's a URL. */
+function parseRecipeLinkLine(line: string): string {
+  const trimmed = line.trim();
+  if (isRecipeLinkLine(trimmed)) return trimmed;
+  const match = trimmed.match(/^Recipe\s*(?:Link)?\s*:\s*(.+)$/i);
+  if (match) {
+    const value = match[1].trim();
+    return isRecipeLinkLine(value) ? value : '';
+  }
+  return '';
+}
+
 function parseDocText(text: string): DayPlan[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const days: DayPlan[] = [];
+
+  // Try tab-separated table rows (e.g. Day | Weekday | Lunch | Recipe Link (Lunch) | Dinner | Recipe Link (Dinner))
+  for (const line of lines) {
+    if (line.includes('\t')) {
+      const cells = line.split('\t').map((c) => c.trim());
+      const dayMatch = (cells[0] ?? '').match(/^Day\s+(\d+)$/i);
+      if (dayMatch && cells.length >= 6) {
+        const dayNum = parseInt(dayMatch[1], 10);
+        const lunch = cells[2] ?? '';
+        const lunchLink = cells[3] ?? '';
+        const dinner = cells[4] ?? '';
+        const dinnerLink = cells[5] ?? '';
+        days.push({
+          dayNum,
+          lunch,
+          dinner,
+          lunchRecipeLink: isRecipeLinkLine(lunchLink) ? lunchLink : '',
+          dinnerRecipeLink: isRecipeLinkLine(dinnerLink) ? dinnerLink : '',
+        });
+      }
+      continue;
+    }
+  }
+
+  if (days.length > 0) return days;
+
+  // Fallback: line-by-line (Day N, Main: ..., recipe link or URL, Main: ..., recipe link or URL)
   let currentDay: number | null = null;
   let mains: string[] = [];
+  let recipeLinks: string[] = [];
 
   for (const line of lines) {
     const dayMatch = line.match(/^Day\s+(\d+)$/i);
     if (dayMatch) {
       if (currentDay !== null && mains.length >= 2) {
-        days.push({ dayNum: currentDay, lunch: mains[0], dinner: mains[1] });
+        days.push({
+          dayNum: currentDay,
+          lunch: mains[0],
+          dinner: mains[1],
+          lunchRecipeLink: recipeLinks[0] ?? '',
+          dinnerRecipeLink: recipeLinks[1] ?? '',
+        });
       }
       currentDay = parseInt(dayMatch[1], 10);
       mains = [];
+      recipeLinks = [];
       continue;
     }
-    if (currentDay !== null && line.startsWith('Main:')) {
+    if (currentDay === null) continue;
+    if (line.startsWith('Main:')) {
       mains.push(line.replace(/^Main:\s*/i, '').trim());
+      continue;
     }
+    const link = parseRecipeLinkLine(line);
+    if (link) recipeLinks.push(link);
+    else if (isRecipeLinkLine(line)) recipeLinks.push(line.trim());
   }
   if (currentDay !== null && mains.length >= 2) {
-    days.push({ dayNum: currentDay, lunch: mains[0], dinner: mains[1] });
+    days.push({
+      dayNum: currentDay,
+      lunch: mains[0],
+      dinner: mains[1],
+      lunchRecipeLink: recipeLinks[0] ?? '',
+      dinnerRecipeLink: recipeLinks[1] ?? '',
+    });
   }
   return days;
 }
@@ -80,21 +145,22 @@ function buildMessage(
   sabji: string,
   chapatiCount: number,
   isRiceDay: boolean,
-  /** Phone number for @mention (e.g. 91XXXXXXXXXX). Body must contain @<number> for Whapi to render a real mention. */
-  mentionPhone: string
+  /** Phone number for @mention. Body must contain @<number> for Whapi to render a real mention. */
+  mentionPhone: string,
+  recipeLink: string
 ): string {
   const mealLabel = mealType === 'lunch' ? 'lunch' : 'dinner';
-  const riceLine =
-    mealType === 'lunch'
-      ? 'Rice aur dal (subah bana lijiye, dono time ke liye)'
-      : 'Rice aur dal (subah wala use karein)';
+  const riceText = isRiceDay ? 'Haan' : 'Nahi';
+  const rotiLine = 'Roti logo k anusar banadijye.';
+  const recipeLine = recipeLink ? `Link of recipe - ${recipeLink}` : 'Link of recipe -';
 
   const lines = [
     `@${mentionPhone} di,`,
-    `Aaj ${mealLabel} mai niche di gayi chezze bana dijiye`,
-    `- Sabji: ${sabji}`,
-    `- Chapati: ${chapatiCount}${isRiceDay ? ' (rice day)' : ''}`,
-    `- ${riceLine}`,
+    `Aaj ${mealLabel} mai`,
+    `Sabji - ${sabji}`,
+    `Rice - ${riceText}`,
+    rotiLine,
+    recipeLine,
   ];
   return lines.join('\n');
 }
@@ -147,13 +213,15 @@ async function main(): Promise<void> {
   }
 
   const sabji = mealType === 'lunch' ? getShortSabji(plan.lunch) : getShortSabji(plan.dinner);
+  const recipeLink =
+    mealType === 'lunch' ? plan.lunchRecipeLink : plan.dinnerRecipeLink;
   const isRiceDay = RICE_DAYS.includes(testMode ? 1 : weekday);
   const chapatiCount = isRiceDay ? CHAPATI_WITH_RICE : CHAPATI_WITHOUT_RICE;
 
   if (testMode) {
     console.log(`Test mode: sending Day 1 ${mealType} meal plan.`);
   }
-  const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay, COOK_PHONE);
+  const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay, COOK_PHONE, recipeLink);
   console.log('Sending message:\n', message);
   await sendWhapiMessage(message);
   console.log('Sent successfully.');
