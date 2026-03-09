@@ -1,0 +1,25 @@
+scripts/meal-plan/send-meal-plan-message.ts
+  a20ac612cf83b873 31-32,184-186,189,196,239-240,242-243,247-252,281-282
+.github/workflows/meal-plan-whatsapp.yml
+  a20ac612cf83b873 2,7-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.8",
+  "base_commit_sha": "4b7bf0145689b3af53cb0528c500f88a8ea934f1",
+  "prompts": {
+    "a20ac612cf83b873": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4de86098-e513-4ae9-914d-b5f953eb1734",
+        "model": "default"
+      },
+      "human_author": "rishabhrathod01 <rathod.rishabh@prophecy.io>",
+      "messages": [],
+      "total_additions": 38,
+      "total_deletions": 21,
+      "accepted_lines": 23,
+      "overriden_lines": 0
+    }
+  }
+}
