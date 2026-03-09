@@ -45,6 +45,12 @@ function isRecipeLinkLine(line: string): boolean {
   return /^https?:\/\//i.test(line.trim());
 }
 
+/** Parse "Day N" from a line; returns day number or 0 if not matched. */
+function parseDayLine(line: string): number {
+  const m = line.match(/Day\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
 /** Extract URL from "Recipe: ..." or "Recipe Link: ..." line; otherwise return line if it's a URL. */
 function parseRecipeLinkLine(line: string): string {
   const trimmed = line.trim();
@@ -58,16 +64,18 @@ function parseRecipeLinkLine(line: string): string {
 }
 
 function parseDocText(text: string): DayPlan[] {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const rawLines = text.split(/\r?\n/);
+  const lines = rawLines.map((l) => l.trim()).filter(Boolean);
   const days: DayPlan[] = [];
 
-  // Try tab-separated table rows (e.g. Day | Weekday | Lunch | Recipe Link (Lunch) | Dinner | Recipe Link (Dinner))
+  // 1) Tab-separated table rows (Day \t Weekday \t Lunch \t LunchLink \t Dinner \t DinnerLink)
+  //    First column can be "Day 1" or just "1"
   for (const line of lines) {
     if (line.includes('\t')) {
       const cells = line.split('\t').map((c) => c.trim());
-      const dayMatch = (cells[0] ?? '').match(/^Day\s+(\d+)$/i);
-      if (dayMatch && cells.length >= 6) {
-        const dayNum = parseInt(dayMatch[1], 10);
+      let dayNum = parseDayLine(cells[0] ?? '');
+      if (dayNum < 1 && /^\d+$/.test(cells[0] ?? '')) dayNum = parseInt(cells[0], 10);
+      if (dayNum >= 1 && dayNum <= 12 && cells.length >= 6) {
         const lunch = cells[2] ?? '';
         const lunchLink = cells[3] ?? '';
         const dinner = cells[4] ?? '';
@@ -86,14 +94,40 @@ function parseDocText(text: string): DayPlan[] {
 
   if (days.length > 0) return days;
 
-  // Fallback: line-by-line (Day N, Main: ..., recipe link or URL, Main: ..., recipe link or URL)
+  // 2) One cell per line: "Day N" then next 5 lines = Weekday, Lunch, LunchLink, Dinner, DinnerLink
+  for (let i = 0; i < lines.length; i++) {
+    const dayNum = parseDayLine(lines[i]);
+    if (dayNum < 1) continue;
+    const rest = lines.slice(i + 1, i + 6);
+    const [weekday, lunch, lunchLink, dinner, dinnerLink] = [
+      rest[0] ?? '',
+      rest[1] ?? '',
+      rest[2] ?? '',
+      rest[3] ?? '',
+      rest[4] ?? '',
+    ];
+    if (lunch && dinner) {
+      days.push({
+        dayNum,
+        lunch,
+        dinner,
+        lunchRecipeLink: isRecipeLinkLine(lunchLink) ? lunchLink : '',
+        dinnerRecipeLink: isRecipeLinkLine(dinnerLink) ? dinnerLink : '',
+      });
+    }
+    i += 5;
+  }
+
+  if (days.length > 0) return days;
+
+  // 3) Line-by-line: Day N, Main: lunch, [Recipe/URL], Main: dinner, [Recipe/URL]
   let currentDay: number | null = null;
   let mains: string[] = [];
   let recipeLinks: string[] = [];
 
   for (const line of lines) {
-    const dayMatch = line.match(/^Day\s+(\d+)$/i);
-    if (dayMatch) {
+    const dayNum = parseDayLine(line);
+    if (dayNum >= 1) {
       if (currentDay !== null && mains.length >= 2) {
         days.push({
           dayNum: currentDay,
@@ -103,7 +137,7 @@ function parseDocText(text: string): DayPlan[] {
           dinnerRecipeLink: recipeLinks[1] ?? '',
         });
       }
-      currentDay = parseInt(dayMatch[1], 10);
+      currentDay = dayNum;
       mains = [];
       recipeLinks = [];
       continue;
@@ -211,7 +245,11 @@ async function main(): Promise<void> {
   const days = parseDocText(docText);
   const plan = days.find((d) => d.dayNum === dayIndex) ?? days[dayIndex - 1];
   if (!plan) {
-    throw new Error(`No meal plan found for day index ${dayIndex}. Parsed ${days.length} days.`);
+    const snippet = docText.trim().slice(0, 300).replace(/\n/g, ' ');
+    throw new Error(
+      `No meal plan found for day index ${dayIndex}. Parsed ${days.length} days. ` +
+        `Doc snippet (first 300 chars): ${snippet || '(empty)'}`
+    );
   }
 
   const sabji = mealType === 'lunch' ? getShortSabji(plan.lunch) : getShortSabji(plan.dinner);
