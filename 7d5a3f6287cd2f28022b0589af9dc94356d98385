@@ -1,0 +1,23 @@
+scripts/meal-plan/send-meal-plan-message.ts
+  a20ac612cf83b873 48-53,67-68,71-72,76-78,97-123,129-130,140,248,250-251
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.8",
+  "base_commit_sha": "7d5a3f6287cd2f28022b0589af9dc94356d98385",
+  "prompts": {
+    "a20ac612cf83b873": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "4de86098-e513-4ae9-914d-b5f953eb1734",
+        "model": "default"
+      },
+      "human_author": "rishabhrathod01 <rathod.rishabh@prophecy.io>",
+      "messages": [],
+      "total_additions": 53,
+      "total_deletions": 15,
+      "accepted_lines": 46,
+      "overriden_lines": 0
+    }
+  }
+}
