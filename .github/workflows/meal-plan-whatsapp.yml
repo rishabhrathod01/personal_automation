@@ -1,13 +1,12 @@
 # Meal plan WhatsApp: send lunch/dinner instructions to 565A Cook group
-# Schedule: 7:30 AM IST and 5:30 PM IST, Monday–Saturday
-# Uses Whapi Sandbox channel (BLKWID-UTZ9U). Set token in GitHub Secrets as WHAPI_API_TOKEN.
+# Same schedule as meal-plan-poll — message goes out at the same time as the poll.
 name: Meal plan WhatsApp
 
 on:
-  # schedule:
-  #   # 7:30 AM IST = 02:00 UTC; 5:30 PM IST = 12:00 UTC; Mon–Sat (1–6)
-  #   - cron: '0 2 * * 1-6'
-  #   - cron: '0 12 * * 1-6'
+  schedule:
+    # Same schedule as meal-plan-poll: dinner 11:30 AM IST, lunch 9 PM IST (prev day)
+    - cron: '0 6 * * 1-6'   # 11:30 AM IST — dinner message (same time as dinner poll)
+    - cron: '30 15 * * 0-5' # 9:00 PM IST — lunch message for tomorrow (same time as lunch poll)
   workflow_dispatch:
     inputs:
       test_mode:

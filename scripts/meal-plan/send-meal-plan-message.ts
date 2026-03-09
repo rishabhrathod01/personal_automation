@@ -28,8 +28,8 @@ interface DayPlan {
 
 function getMealTypeFromUTCHour(): MealType {
   const hour = new Date().getUTCHours();
-  if (hour >= 1 && hour <= 3) return 'lunch'; // 7:30 AM IST ≈ 02:00 UTC
-  if (hour >= 11 && hour <= 13) return 'dinner'; // 5:30 PM IST ≈ 12:00 UTC
+  if (hour >= 15 && hour <= 16) return 'lunch'; // 9:00 PM IST = 15:30 UTC (same as lunch poll)
+  if (hour >= 6 && hour <= 7) return 'dinner'; // 11:30 AM IST = 06:00 UTC (same as dinner poll)
   return 'lunch'; // default for manual run
 }
 
@@ -181,16 +181,19 @@ function buildMessage(
   isRiceDay: boolean,
   /** Phone number for @mention. Body must contain @<number> for Whapi to render a real mention. */
   mentionPhone: string,
-  recipeLink: string
+  recipeLink: string,
+  /** When true (9 PM lunch run), use "Kal" instead of "Aaj". */
+  isTomorrow = false
 ): string {
   const mealLabel = mealType === 'lunch' ? 'lunch' : 'dinner';
+  const dayLabel = isTomorrow ? 'Kal' : 'Aaj';
   const riceText = isRiceDay ? 'Haan' : 'Nahi';
   const rotiLine = 'Roti logo k anusar banadijye.';
   const recipeLine = recipeLink ? `Link of recipe - ${recipeLink}` : 'Link of recipe -';
 
   const lines = [
     `@${mentionPhone} di,`,
-    `Aaj ${mealLabel} mai`,
+    `${dayLabel} ${mealLabel} mai`,
     `Sabji - ${sabji}`,
     `Rice - ${riceText}`,
     rotiLine,
@@ -233,13 +236,20 @@ async function main(): Promise<void> {
   const testDay = testDayRaw ? Math.max(1, Math.min(12, parseInt(testDayRaw, 10) || 1)) : 1;
   const mealType = getMealTypeFromUTCHour();
   const weekday = getISTWeekday(); // 0=Sun .. 6=Sat
+  const utcHour = new Date().getUTCHours();
+  const isLunchPollSlot = utcHour >= 15 && utcHour <= 16; // 9 PM IST run = tomorrow's lunch
 
-  if (!testMode && weekday === 0) {
-    console.log('Sunday — no message sent.');
+  if (!testMode && mealType === 'dinner' && weekday === 0) {
+    console.log('Sunday — no dinner message sent.');
     process.exit(0);
   }
 
-  const dayIndex = testMode ? testDay : weekday; // test = selected day (1–12); else 1=Mon .. 6=Sat
+  // Test: use selected day. Scheduled: lunch at 9 PM = tomorrow's lunch (weekday+1); dinner at 11:30 AM = today (weekday)
+  const dayIndex = testMode
+    ? testDay
+    : isLunchPollSlot
+      ? (weekday % 6) + 1 // Sun 0→1(Mon), Mon 1→2, ..., Fri 5→6(Sat)
+      : weekday || 1; // dinner: Mon=1 .. Sat=6; Sunday skip handled above
 
   const docText = await fetchDoc();
   const days = parseDocText(docText);
@@ -262,7 +272,15 @@ async function main(): Promise<void> {
   if (testMode) {
     console.log(`Test mode: sending Day ${dayIndex} ${mealType} meal plan.`);
   }
-  const message = buildMessage(mealType, sabji, chapatiCount, isRiceDay, COOK_PHONE, recipeLink);
+  const message = buildMessage(
+    mealType,
+    sabji,
+    chapatiCount,
+    isRiceDay,
+    COOK_PHONE,
+    recipeLink,
+    isLunchPollSlot
+  );
   console.log('Sending message:\n', message);
   await sendWhapiMessage(message);
   console.log('Sent successfully.');
