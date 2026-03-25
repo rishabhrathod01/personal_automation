@@ -26,7 +26,7 @@ All sensitive data is in **Secrets** so the repo can stay open source. Set these
 | `WHAPI_API_TOKEN`       | Whapi.Cloud API token from your channel dashboard. |
 | `WHAPI_GROUP_ID`        | WhatsApp group chat ID (e.g. `YOUR_GROUP_ID@g.us`). Get via `WHAPI_API_TOKEN=... npm run meal-plan:get-groups` and copy the `id` for your group. |
 | `MEAL_PLAN_COOK_PHONE`  | Cook’s phone for @mention, no spaces (e.g. `91XXXXXXXXXX`). |
-| `MEAL_PLAN_DOC_ID`      | Google Doc ID of the meal plan. From the doc URL `.../d/DOC_ID/edit`, copy the `DOC_ID` part only. |
+| `MEAL_PLAN_DOC_ID`      | Google Doc ID of the meal plan. From the doc URL `.../d/DOC_ID/edit`, copy the `DOC_ID` part only. Example source doc: [565 Haveli Food Menu](https://docs.google.com/document/d/1S-FUKn3k9oTSPuQYz-yotOUQgB_V6SsH8FR60BhtZJQ/edit) — use that document’s ID as the secret value if that is your meal plan. |
 
 **Steps:**
 
@@ -63,7 +63,8 @@ Do these once in order:
 
 ### 4.2 Google Doc (meal plan)
 
-- Create or use a meal plan Google Doc with a table: **Day**, **Lunch**, **Dinner** (rows like "Day 1", "Main: …", "Main: …").
+- Create or use a meal plan Google Doc with a **table** (tab-separated export). Recommended columns per row: **Day**, **Weekday**, **Lunch**, **Rice** (yes/no), **Dal** (yes/no), **Recipe link** (URL as plain text in the cell), **Dinner**, **Rice**, **Dal**, **Recipe link**. Rows **Day 1 … Day 12** for the two-week menu.
+- **12-day cycle:** The script maps each **Mon–Sat** to a doc day using the **ISO week number**: on **even** ISO weeks it uses **Days 1–6** (Mon=Day 1 … Sat=Day 6); on **odd** ISO weeks it uses **Days 7–12** (Mon=Day 7 … Sat=Day 12). The **9 PM IST** run sends **tomorrow’s** lunch (“Kal”); the **11:30 AM IST** run sends **today’s** dinner. Recipe URLs must appear as **visible text** in the cell (plain `https://…`); hyperlink-only text like “Hindi Recipe” does not export to `.txt`.
 - **Share** → set to **"Anyone with the link can view"** so the workflow can fetch `.../export?format=txt` without Google auth.
 - Copy the **Doc ID** from the URL (`.../d/DOC_ID/edit`) and set it as the **`MEAL_PLAN_DOC_ID`** repository secret (see §2).
 

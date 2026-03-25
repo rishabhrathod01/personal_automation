@@ -8,14 +8,14 @@ Personal automation and workflows, run on a schedule or manually via **GitHub Ac
 
 ### Meal plan WhatsApp
 
-Sends daily meal instructions (lunch and dinner) to a WhatsApp group (**565A Cook**) from a **Google Doc** meal plan. The cook (Manisha) gets a message with what sabji to prepare, chapati count, and rice/dal notes.
+Sends daily meal instructions (lunch and dinner) to a WhatsApp group (**565A Cook**) from a **Google Doc** meal plan (e.g. [565 Haveli Food Menu](https://docs.google.com/document/d/1S-FUKn3k9oTSPuQYz-yotOUQgB_V6SsH8FR60BhtZJQ/edit)). The cook gets sabji, Rice/Dal (yes/no from the doc), roti note, recipe link, and a line previewing the **next** meal (`Agla "…" hoga`).
 
 | What | Details |
 |------|--------|
-| **Schedule** | Monday–Saturday: **7:30 AM IST** (lunch) and **5:30 PM IST** (dinner) |
-| **Data source** | Google Doc (ID in `MEAL_PLAN_DOC_ID` secret) — Day 1–12 table with Lunch/Dinner “Main” dishes |
+| **Schedule** | Same as the meal-plan poll: **9:00 PM IST** Sun–Fri (tomorrow’s lunch, “Kal”) and **11:30 AM IST** Mon–Sat (today’s dinner). See [meal-plan-whatsapp.yml](.github/workflows/meal-plan-whatsapp.yml). |
+| **Data source** | Google Doc (`MEAL_PLAN_DOC_ID`) — **12 rows** (Day 1–12) with Lunch/Dinner, Rice/Dal columns, and recipe URLs as plain text in cells. **Even ISO calendar weeks** use Days 1–6; **odd weeks** use Days 7–12. |
 | **Delivery** | [Whapi.Cloud](https://whapi.cloud/) API → WhatsApp group (group ID and cook phone in secrets) |
-| **Message format** | “@manisha_cook di, Aaj &lt;lunch/dinner&gt; mai niche di gayi chezze bana dijiye” + bullet list (sabji, chapati, rice/dal) |
+| **Message format** | `@… di`, Aaj/Kal lunch/dinner, Sabji, Rice, Dal, roti line, recipe link, optional Agla next dish |
 
 **How the group ID is obtained:** The workflow uses Whapi's **Groups API** (`GET /groups`). From the repo, run `WHAPI_API_TOKEN=your_token npm run meal-plan:get-groups` (after `npm run build`). The script lists all groups the channel can see and prints each group's `id` (e.g. `123456789012345@g.us`). Copy that `id` and set it as the `WHAPI_GROUP_ID` secret (or in local `.env`). The invite link for a WhatsApp group is not the same as this API group ID.
 
@@ -25,7 +25,7 @@ Sends daily meal instructions (lunch and dinner) to a WhatsApp group (**565A Coo
 
 **Scripts (TypeScript):**
 
-- [`scripts/meal-plan/send-meal-plan-message.ts`](scripts/meal-plan/send-meal-plan-message.ts) — Fetches doc, parses by weekday (Mon=Day 1 … Sat=Day 6), builds message, sends via Whapi.
+- [`scripts/meal-plan/send-meal-plan-message.ts`](scripts/meal-plan/send-meal-plan-message.ts) — Fetches doc, **12-day / ISO-week** mapping, Rice/Dal columns, next-meal line, sends via Whapi.
 - [`scripts/meal-plan/config.ts`](scripts/meal-plan/config.ts) — Reads doc ID, group ID, cook phone from env (GitHub Secrets or `.env`). Chapati/rice defaults stay in code.
 - [`scripts/meal-plan/get-whapi-groups.ts`](scripts/meal-plan/get-whapi-groups.ts) — Helper to list Whapi groups and find the 565A Cook group ID.
 
